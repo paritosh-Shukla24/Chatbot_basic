@@ -3,54 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Groq Chatbot</title>
+    <title>Chat Widget</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            min-height: 100vh;
+        .chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
         }
 
-        .container {
+        .chat-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
             display: flex;
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            gap: 20px;
+            align-items: center;
+            justify-content: center;
         }
 
-        .sidebar {
-            width: 300px;
-            background-color: #f5f5f5;
-            padding: 20px;
-            border-radius: 10px;
-            height: fit-content;
+        .chat-button:hover {
+            background-color: #1976d2;
         }
 
         .chat-container {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            background-color: #ffffff;
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background-color: white;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 15px;
+            background-color: #2196f3;
+            color: white;
+            border-radius: 10px 10px 0 0;
+            font-weight: bold;
         }
 
         .chat-messages {
             flex-grow: 1;
-            padding: 20px;
+            padding: 15px;
             overflow-y: auto;
-            max-height: 70vh;
+            background-color: #f5f5f5;
         }
 
         .message {
-            margin-bottom: 20px;
-            padding: 10px 15px;
-            border-radius: 10px;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 15px;
             max-width: 80%;
+            word-wrap: break-word;
         }
 
         .user-message {
@@ -59,104 +73,51 @@
         }
 
         .bot-message {
-            background-color: #f5f5f5;
+            background-color: white;
             margin-right: auto;
         }
 
-        .input-container {
-            padding: 20px;
+        .chat-input {
+            padding: 15px;
             border-top: 1px solid #e0e0e0;
             display: flex;
             gap: 10px;
         }
 
-        input, select, button {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-
-        input {
+        .chat-input input {
             flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
         }
 
-        button {
+        .chat-input button {
+            padding: 8px 15px;
             background-color: #2196f3;
             color: white;
             border: none;
+            border-radius: 20px;
             cursor: pointer;
-            transition: background-color 0.3s;
         }
 
-        button:hover {
+        .chat-input button:hover {
             background-color: #1976d2;
-        }
-
-        .settings-group {
-            margin-bottom: 20px;
-        }
-
-        .settings-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        select {
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .status {
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 5px;
-            display: none;
-        }
-
-        .error {
-            background-color: #ffebee;
-            color: #c62828;
-        }
-
-        .loading {
-            background-color: #e3f2fd;
-            color: #1976d2;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="sidebar">
-            <h2>Chat Settings</h2>
-            <div class="settings-group">
-                <label for="model">Model:</label>
-                <select id="model">
-                    <option value="llama3-70b-8192">Llama 3 70B</option>
-                    <option value="gemma2-9b-it">Gemma 2 9B</option>
-                    <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
-                </select>
-            </div>
-            <div class="settings-group">
-                <label for="persona">Persona:</label>
-                <select id="persona">
-                    <option value="Default">Default</option>
-                    <option value="Expert">Expert</option>
-                    <option value="Creative">Creative</option>
-                </select>
-            </div>
-            <div class="settings-group">
-                <label for="memory">Memory Length:</label>
-                <input type="number" id="memory" value="5" min="1" max="10">
-            </div>
-            <button onclick="clearChat()" style="width: 100%;">Clear Chat</button>
-            <div id="status" class="status"></div>
-        </div>
+    <div class="chat-widget">
+        <button class="chat-button" onclick="toggleChat()">
+            💬
+        </button>
 
-        <div class="chat-container">
+        <div class="chat-container" id="chat-container">
+            <div class="chat-header">
+                Chat with us
+            </div>
             <div class="chat-messages" id="chat-messages"></div>
-            <div class="input-container">
+            <div class="chat-input">
                 <input type="text" id="user-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
                 <button onclick="sendMessage()">Send</button>
             </div>
@@ -165,15 +126,15 @@
 
     <script>
         let sessionId = uuid.v4();
+        let isChatOpen = false;
 
-        function showStatus(message, isError = false) {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.style.display = 'block';
-            status.className = `status ${isError ? 'error' : 'loading'}`;
-            setTimeout(() => {
-                status.style.display = 'none';
-            }, 3000);
+        function toggleChat() {
+            const chatContainer = document.getElementById('chat-container');
+            isChatOpen = !isChatOpen;
+            chatContainer.style.display = isChatOpen ? 'flex' : 'none';
+            if (isChatOpen) {
+                document.getElementById('user-input').focus();
+            }
         }
 
         function appendMessage(content, isUser) {
@@ -190,15 +151,10 @@
             const message = input.value.trim();
             if (!message) return;
 
-            const model = document.getElementById('model').value;
-            const persona = document.getElementById('persona').value;
-            const memory = document.getElementById('memory').value;
-
             appendMessage(message, true);
             input.value = '';
 
             try {
-                showStatus('Sending message...');
                 const response = await fetch(`/chat/${sessionId}/`, {
                     method: 'POST',
                     headers: {
@@ -206,9 +162,9 @@
                     },
                     body: JSON.stringify({
                         message: message,
-                        model: model,
-                        persona: persona,
-                        memory_length: parseInt(memory)
+                        model: "llama3-70b-8192",
+                        persona: "Default",
+                        memory_length: 5
                     })
                 });
 
@@ -219,7 +175,7 @@
                 const data = await response.json();
                 appendMessage(data.response, false);
             } catch (error) {
-                showStatus('Error: ' + error.message, true);
+                appendMessage('Sorry, there was an error processing your message.', false);
                 console.error('Error:', error);
             }
         }
@@ -227,19 +183,6 @@
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 sendMessage();
-            }
-        }
-
-        async function clearChat() {
-            try {
-                await fetch(`/chat/${sessionId}/`, {
-                    method: 'DELETE'
-                });
-                sessionId = uuid.v4();
-                document.getElementById('chat-messages').innerHTML = '';
-                showStatus('Chat cleared successfully');
-            } catch (error) {
-                showStatus('Error clearing chat: ' + error.message, true);
             }
         }
     </script>
