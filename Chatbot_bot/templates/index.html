@@ -65,6 +65,9 @@
             border-radius: 15px;
             max-width: 80%;
             word-wrap: break-word;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
         }
 
         .user-message {
@@ -75,6 +78,18 @@
         .bot-message {
             background-color: white;
             margin-right: auto;
+        }
+
+        .bot-icon {
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            border-radius: 4px;
+            object-fit: contain;
+        }
+
+        .message-content {
+            flex-grow: 1;
         }
 
         .chat-input {
@@ -141,7 +156,13 @@
             const messagesDiv = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
-            messageDiv.textContent = content;
+
+            if (isUser) {
+                messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
+            } else {
+                messageDiv.innerHTML = `<img src="/static/assets/bot_img.jpg" class="bot-icon" alt="Bot Icon"><div class="message-content">${content}</div>`;
+            }
+
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
