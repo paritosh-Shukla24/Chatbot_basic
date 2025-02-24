@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groq Chatbot</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/uuid/8.3.2/uuid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 70vh;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: auto;
+        }
+
+        .bot-message {
+            background-color: #f5f5f5;
+            margin-right: auto;
+        }
+
+        .input-container {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        input, select, button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        input {
+            flex-grow: 1;
+        }
+
+        button {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #1976d2;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        select {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .loading {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Chat Settings</h2>
+            <div class="settings-group">
+                <label for="model">Model:</label>
+                <select id="model">
+                    <option value="llama3-70b-8192">Llama 3 70B</option>
+                    <option value="gemma2-9b-it">Gemma 2 9B</option>
+                    <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                </select>
+            </div>
+            <div class="settings-group">
+                <label for="persona">Persona:</label>
+                <select id="persona">
+                    <option value="Default">Default</option>
+                    <option value="Expert">Expert</option>
+                    <option value="Creative">Creative</option>
+                </select>
+            </div>
+            <div class="settings-group">
+                <label for="memory">Memory Length:</label>
+                <input type="number" id="memory" value="5" min="1" max="10">
+            </div>
+            <button onclick="clearChat()" style="width: 100%;">Clear Chat</button>
+            <div id="status" class="status"></div>
+        </div>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="input-container">
+                <input type="text" id="user-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = uuid.v4();
+
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.display = 'block';
+            status.className = `status ${isError ? 'error' : 'loading'}`;
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        function appendMessage(content, isUser) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const model = document.getElementById('model').value;
+            const persona = document.getElementById('persona').value;
+            const memory = document.getElementById('memory').value;
+
+            appendMessage(message, true);
+            input.value = '';
+
+            try {
+                showStatus('Sending message...');
+                const response = await fetch(`/chat/${sessionId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        model: model,
+                        persona: persona,
+                        memory_length: parseInt(memory)
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get response');
+                }
+
+                const data = await response.json();
+                appendMessage(data.response, false);
+            } catch (error) {
+                showStatus('Error: ' + error.message, true);
+                console.error('Error:', error);
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function clearChat() {
+            try {
+                await fetch(`/chat/${sessionId}/`, {
+                    method: 'DELETE'
+                });
+                sessionId = uuid.v4();
+                document.getElementById('chat-messages').innerHTML = '';
+                showStatus('Chat cleared successfully');
+            } catch (error) {
+                showStatus('Error clearing chat: ' + error.message, true);
+            }
+        }
+    </script>
+</body>
+</html>
